@@ -16,8 +16,11 @@ class Actor : public GraphObject {
   virtual int getActorType() const = 0;
   virtual void doSomething() = 0;
   StudentWorld* getWorld() const;
+  bool isAlive() const;
+  void setAlive(bool b);
  private:
   StudentWorld* m_world;
+  bool m_alive;
 };
 
 class Player : public Actor {

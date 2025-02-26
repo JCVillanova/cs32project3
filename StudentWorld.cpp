@@ -10,10 +10,10 @@ GameWorld* createStudentWorld(std::string assetPath) {
   return new StudentWorld(assetPath);
 }
 
-// Students:  Add code to this file, StudentWorld.h, Actor.h, and Actor.cpp
+// Students: Add code to this file, StudentWorld.h, Actor.h, and Actor.cpp
 
 StudentWorld::StudentWorld(std::string assetPath)
-: GameWorld(assetPath), actorList(VIEW_WIDTH,
+  : GameWorld(assetPath), actorList(VIEW_WIDTH,
 std::vector<std::list<Actor*>>(VIEW_HEIGHT)) {}
 
 StudentWorld::~StudentWorld() {
