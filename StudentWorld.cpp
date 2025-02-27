@@ -39,6 +39,8 @@ int StudentWorld::init() {
         addActor(new Player(x, y, this), x, y);
       } else if (item == Level::floor) {
         addActor(new Floor(x, y), x, y);
+      } else if (item == Level::ladder) {
+        addActor(new Ladder(x, y), x, y);
       }
     }
   }

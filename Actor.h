@@ -15,7 +15,8 @@ class Actor : public GraphObject {
   Actor(int img, int x, int y, StudentWorld* world);
   virtual int getActorType() const = 0;
   virtual void doSomething() = 0;
-  virtual bool canMoveTo(int x, int y) = 0;
+  virtual bool canMoveTo(int x, int y, int directionTried) { return false; }
+  virtual bool onLadder() { return false; }
   StudentWorld* getWorld() const;
   bool isAlive() const;
   void setAlive(bool b);
@@ -29,7 +30,8 @@ class Player : public Actor {
   Player(int x, int y, StudentWorld* world);
   virtual int getActorType() const;
   virtual void doSomething();
-  virtual bool canMoveTo(int x, int y);
+  virtual bool canMoveTo(int x, int y, int directionTried);
+  virtual bool onLadder() const;
  private:
   int m_jumpTick = 0, m_key = 0;
   bool m_jumping;
@@ -40,7 +42,14 @@ class Floor : public Actor {
   Floor(int x, int y);
   virtual int getActorType() const;
   virtual void doSomething();
-  virtual bool canMoveTo(int x, int y);
+ private:
+};
+
+class Ladder : public Actor {
+ public:
+  Ladder(int x, int y);
+  virtual int getActorType() const;
+  virtual void doSomething();
  private:
 };
 

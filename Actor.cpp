@@ -37,7 +37,15 @@ void Player::doSomething() {
       case 1:
       case 2:
       case 3:
-        if (canMoveTo(getX()+dirMove, getY())) {
+        // Grab if on a ladder, stopping jump
+        if (onLadder()) {
+          m_jumpTick = 0;
+          m_jumping = false;
+          break;
+        }
+
+        // Execute next jump tick
+        if (canMoveTo(getX()+dirMove, getY(), KEY_PRESS_SPACE)) {
           moveTo(getX()+dirMove, getY());
           ++m_jumpTick;
         } else {
@@ -46,7 +54,15 @@ void Player::doSomething() {
         }
         break;
       case 4:
-        if (canMoveTo(getX(), getY()-1)) {
+        // Grab if on a ladder, stopping jump
+        if (onLadder()) {
+          m_jumpTick = 0;
+          m_jumping = false;
+          break;
+        }
+
+        // Execute last jump tick
+        if (canMoveTo(getX(), getY()-1, KEY_PRESS_SPACE)) {
           moveTo(getX(), getY()-1);
         }
         m_jumpTick = 0;
@@ -62,8 +78,7 @@ void Player::doSomething() {
   // NOTE: Must do some action for when the player is frozen
 
   // Fall if player has no ground beneath them
-  // NOTE: Must check for ladder beneath (once implemented)
-  if (canMoveTo(getX(), getY()-1)) {
+  if (canMoveTo(getX(), getY()-1, 1004)) {
     moveTo(getX(), getY()-1);
     return;
   }
@@ -71,14 +86,26 @@ void Player::doSomething() {
   if (getWorld()->getKey(m_key)) {
     switch (m_key) {
       case KEY_PRESS_LEFT: {
-        setDirection(left);
+        // Switch direction if needed, don't move
+        if (getDirection() == right) {
+          setDirection(left);
+          break;
+        }
 
-        if (canMoveTo(getX()-1, getY())) moveTo(getX()-1, getY());
+        // Move if possible
+        if (canMoveTo(getX()-1, getY(), KEY_PRESS_LEFT))
+          moveTo(getX()-1, getY());
         break;
       }
       case KEY_PRESS_RIGHT: {
-        setDirection(right);
-        if (canMoveTo(getX()+1, getY())) {
+        // Switch direction if needed, don't move
+        if (getDirection() == left) {
+          setDirection(right);
+          break;
+        }
+
+        // Move if possible
+        if (canMoveTo(getX()+1, getY(), KEY_PRESS_RIGHT)) {
           // NOTE: This functionality might be broken, you will find out when
           // doing collisions with moving objects
 
@@ -101,8 +128,18 @@ void Player::doSomething() {
         }
         break;
       }
+      case KEY_PRESS_UP: {
+        if (canMoveTo(getX(), getY()+1, KEY_PRESS_UP))
+          moveTo(getX(), getY()+1);
+        break;
+      }
+      case KEY_PRESS_DOWN: {
+        if (canMoveTo(getX(), getY()-1, KEY_PRESS_DOWN))
+          moveTo(getX(), getY()-1);
+        break;
+      }
       case KEY_PRESS_SPACE: {
-        if (!m_jumping && canMoveTo(getX(), getY()+1)) {
+        if (!m_jumping && canMoveTo(getX(), getY()+1, KEY_PRESS_SPACE)) {
           m_jumping = true;
           moveTo(getX(), getY()+1);  // First jump tick
           ++m_jumpTick;
@@ -116,16 +153,64 @@ void Player::doSomething() {
   }
 }
 
-bool Player::canMoveTo(int x, int y) {
-  bool collided = false;
+bool Player::canMoveTo(int x, int y, int directionTried) {
+  if (y >= VIEW_WIDTH) return false;  // Can't go out of bounds
+
   std::list<Actor *> cellList = getWorld()->getActorsInCell(x, y);
   for (auto i : cellList) {
-    if (i->getActorType() == IID_FLOOR) {
-      collided = true;
+    if (i->getActorType() == IID_FLOOR) {  // Can't move through floors
+      return false;
       break;
     }
   }
-  return !collided;
+
+  // Check for ladders (going up)
+  cellList = getWorld()->getActorsInCell(x, y-1);
+  if (directionTried == KEY_PRESS_UP) {
+    if (cellList.empty()) return false;  // Can't move up while in open air
+    for (auto i : cellList) {
+      // Also can't move up when not on a ladder
+      if (i->getActorType() != IID_LADDER) return false;
+    }
+  }
+
+  // Check for ladders (going down), or for letting go of a ladder from bottom
+  cellList = getWorld()->getActorsInCell(x, y);
+  if (directionTried == KEY_PRESS_DOWN) {
+    for (auto i : cellList) {
+      // Also can't move down when not on a ladder
+      if (i->getActorType() != IID_LADDER) {
+        cellList = getWorld()->getActorsInCell(x, y+1);
+        for (auto i : cellList) {
+          // Allow letting go of ladder
+          if (i->getActorType() != IID_LADDER) return false;
+        }
+      }
+    }
+  }
+
+  cellList = getWorld()->getActorsInCell(x, y);
+  // There is no keybind for falling, so we use 1004
+  if (directionTried == 1004) {
+    for (auto i : cellList) {
+      // Player can't fall when above a ladder
+      if (i->getActorType() == IID_LADDER) return false;
+    }
+    cellList = getWorld()->getActorsInCell(x, y+1);
+    for (auto i : cellList) {
+      // Player can't fall when on a ladder
+      if (i->getActorType() == IID_LADDER) return false;
+    }
+  }
+  return true;
+}
+
+bool Player::onLadder() const {
+  std::list<Actor *> cellList = getWorld()->getActorsInCell(getX(), getY());
+  for (auto i : cellList) {
+    if (i->getActorType() == IID_LADDER) return true;
+  }
+  return false;
 }
 
 Floor::Floor(int x, int y) : Actor(IID_FLOOR, x, y) {}
@@ -134,4 +219,8 @@ int Floor::getActorType() const { return IID_FLOOR; }
 
 void Floor::doSomething() { return; }
 
-bool Floor::canMoveTo(int x, int y) { return false; }
+Ladder::Ladder(int x, int y) : Actor(IID_LADDER, x, y) {}
+
+int Ladder::getActorType() const { return IID_LADDER; }
+
+void Ladder::doSomething() { return; }
