@@ -3,7 +3,7 @@
 #include "Actor.h"
 #include "GameConstants.h"
 #include "StudentWorld.h"
-#include <list>
+#include <cstdio>
 
 // Students: Add code to this file, Actor.h, StudentWorld.h, and
 // StudentWorld.cpp
@@ -19,8 +19,6 @@ void Actor::setAlive(bool b) { m_alive = b; }
 
 Player::Player(int x, int y, StudentWorld *world)
 : Actor(IID_PLAYER, x, y, world), m_jumping(false) {}
-
-int Player::getActorType() const { return IID_PLAYER; }
 
 void Player::doSomething() {
   if (!isAlive()) return;  // Return if player is dead
@@ -38,7 +36,7 @@ void Player::doSomething() {
       case 2:
       case 3:
         // Grab if on a ladder, stopping jump
-        if (onLadder()) {
+        if (onLadder(getX(), getY())) {
           m_jumpTick = 0;
           m_jumping = false;
           break;
@@ -55,7 +53,7 @@ void Player::doSomething() {
         break;
       case 4:
         // Grab if on a ladder, stopping jump
-        if (onLadder()) {
+        if (onLadder(getX(), getY())) {
           m_jumpTick = 0;
           m_jumping = false;
           break;
@@ -105,27 +103,8 @@ void Player::doSomething() {
         }
 
         // Move if possible
-        if (canMoveTo(getX()+1, getY(), KEY_PRESS_RIGHT)) {
-          // NOTE: This functionality might be broken, you will find out when
-          // doing collisions with moving objects
-
-          // Remove the actor from its previous position
-          std::list<Actor *> prevList = getWorld()->getActorsInCell(getX(),
-                                                                    getY());
-
-          std::list<Actor *> cellList = getWorld()->getActorsInCell(getX()+1,
-                                                                    getY());
-          for (auto i = prevList.begin(); i != prevList.end(); ++i) {
-            if ((*i)->getActorType() == IID_PLAYER) {
-              getWorld()->removeActor(i, getX(), getY());
-              break;
-            }
-          }
-
-          // Add the actor back at its new position
-          cellList.push_back(this);
+        if (canMoveTo(getX()+1, getY(), KEY_PRESS_RIGHT))
           moveTo(getX()+1, getY());
-        }
         break;
       }
       case KEY_PRESS_UP: {
@@ -156,71 +135,59 @@ void Player::doSomething() {
 bool Player::canMoveTo(int x, int y, int directionTried) {
   if (y >= VIEW_WIDTH) return false;  // Can't go out of bounds
 
-  std::list<Actor *> cellList = getWorld()->getActorsInCell(x, y);
-  for (auto i : cellList) {
-    if (i->getActorType() == IID_FLOOR) {  // Can't move through floors
-      return false;
-      break;
-    }
+  // Can't move through barriers
+  if (!getWorld()->checkIfCanBeMovedThrough(x, y)) {
+    return false;
   }
 
   // Check for ladders (going up)
-  cellList = getWorld()->getActorsInCell(x, y-1);
   if (directionTried == KEY_PRESS_UP) {
-    if (cellList.empty()) return false;  // Can't move up while in open air
-    for (auto i : cellList) {
-      // Also can't move up when not on a ladder
-      if (i->getActorType() != IID_LADDER) return false;
-    }
+    // Can't move up while in open air or when not on a ladder
+    if (getWorld()->cellEmpty(x, y-1) || !getWorld()->checkForLadder(x, y-1))
+      return false;
   }
 
   // Check for ladders (going down), or for letting go of a ladder from bottom
-  cellList = getWorld()->getActorsInCell(x, y);
   if (directionTried == KEY_PRESS_DOWN) {
-    for (auto i : cellList) {
-      // Also can't move down when not on a ladder
-      if (i->getActorType() != IID_LADDER) {
-        cellList = getWorld()->getActorsInCell(x, y+1);
-        for (auto i : cellList) {
-          // Allow letting go of ladder
-          if (i->getActorType() != IID_LADDER) return false;
-        }
-      }
+    // Can't move down when not on top of a ladder, unless the player is trying
+    // to fall off a ladder they are holding onto
+    if (!getWorld()->checkForLadder(x, y) &&
+      !getWorld()->checkForLadder(x, y+1)) {
+      return false;
     }
   }
 
-  cellList = getWorld()->getActorsInCell(x, y);
   // There is no keybind for falling, so we use 1004
   if (directionTried == 1004) {
-    for (auto i : cellList) {
-      // Player can't fall when above a ladder
-      if (i->getActorType() == IID_LADDER) return false;
-    }
-    cellList = getWorld()->getActorsInCell(x, y+1);
-    for (auto i : cellList) {
-      // Player can't fall when on a ladder
-      if (i->getActorType() == IID_LADDER) return false;
-    }
+    // Player can't fall when above or holding onto a ladder
+    if (getWorld()->checkForLadder(x, y) || getWorld()->checkForLadder(x, y+1))
+      return false;
   }
   return true;
 }
 
-bool Player::onLadder() const {
-  std::list<Actor *> cellList = getWorld()->getActorsInCell(getX(), getY());
-  for (auto i : cellList) {
-    if (i->getActorType() == IID_LADDER) return true;
-  }
+bool Player::onLadder(int x, int y) const {
+  if (getWorld()->checkForLadder(x, y)) return true;
   return false;
 }
 
 Floor::Floor(int x, int y) : Actor(IID_FLOOR, x, y) {}
 
-int Floor::getActorType() const { return IID_FLOOR; }
-
 void Floor::doSomething() { return; }
 
 Ladder::Ladder(int x, int y) : Actor(IID_LADDER, x, y) {}
 
-int Ladder::getActorType() const { return IID_LADDER; }
-
 void Ladder::doSomething() { return; }
+
+Bonfire::Bonfire(int x, int y) : Actor(IID_BONFIRE, x, y) {}
+
+void Bonfire::doSomething() {
+  // Update animation explicitly since bonfires don't automatically call it
+  // upon movement (since they don't move)
+  std::cerr << "Bonfire tried to do something" << std::endl;
+  increaseAnimationNumber();
+
+  std::cerr << "Size from doSomething: " << getWorld()->getActorsInCell(getX(), getY()).size() << std::endl;
+  getWorld()->incinerate(getX(), getY());
+  std::cerr << "Bonfire finished doing something" << std::endl;
+}

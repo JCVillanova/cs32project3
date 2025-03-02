@@ -2,7 +2,6 @@
 
 #include "StudentWorld.h"
 #include "GameConstants.h"
-#include <list>
 #include <string>
 #include <vector>
 
@@ -14,7 +13,7 @@ GameWorld* createStudentWorld(std::string assetPath) {
 
 StudentWorld::StudentWorld(std::string assetPath)
   : GameWorld(assetPath), actorList(VIEW_WIDTH,
-std::vector<std::list<Actor*>>(VIEW_HEIGHT)) {}
+std::vector<std::vector<Actor*>>(VIEW_HEIGHT)) {}
 
 StudentWorld::~StudentWorld() {
   cleanUp();
@@ -41,6 +40,8 @@ int StudentWorld::init() {
         addActor(new Floor(x, y), x, y);
       } else if (item == Level::ladder) {
         addActor(new Ladder(x, y), x, y);
+      } else if (item == Level::bonfire) {
+        addActor(new Bonfire(x, y), x, y);
       }
     }
   }
@@ -56,8 +57,8 @@ int StudentWorld::move() {
 
   for (int x = 0; x < VIEW_WIDTH; ++x) {
     for (int y = 0; y < VIEW_HEIGHT; ++y) {
-      for (auto actor : actorList[x][y]) {
-        actor->doSomething();
+      for (int i = 0; i < actorList[x][y].size(); ++i) {
+        actorList[x][y][i]->doSomething();
       }
     }
   }
@@ -79,7 +80,7 @@ bool StudentWorld::noActors(int x, int y) const {
   return actorList[x][y].empty();
 }
 
-std::list<Actor*>::iterator StudentWorld::createIterator(int x, int y) {
+std::vector<Actor*>::iterator StudentWorld::createIterator(int x, int y) {
   return actorList[x][y].begin();
 }
 
@@ -87,11 +88,46 @@ void StudentWorld::addActor(Actor* a, int x, int y) {
   actorList[x][y].push_back(a);
 }
 
-void StudentWorld::removeActor(std::list<Actor*>::iterator it, int x, int y) {
+void StudentWorld::removeActor(std::vector<Actor*>::iterator it, int x, int y) {
   delete *it;
   it = actorList[x][y].erase(it);
 }
 
-std::list<Actor*> StudentWorld::getActorsInCell(int x, int y) const {
+std::vector<Actor*> StudentWorld::getActorsInCell(int x, int y) const {
   return actorList[x][y];
+}
+
+bool StudentWorld::checkIfCanBeMovedThrough(int x, int y) const {
+  std::vector<Actor *> actorsInCell = actorList[x][y];
+  for (auto i : actorsInCell) {
+    if (!i->canBeMovedThrough()) {  // Can't move through barriers
+      return false;
+    }
+  }
+  return true;
+}
+
+bool StudentWorld::checkForLadder(int x, int y) const {
+  std::vector<Actor *> actorsInCell = actorList[x][y];
+  for (auto i : actorsInCell) {
+    if (i->climbable()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void StudentWorld::incinerate(int x, int y) {
+  std::cerr << "Started incineration" << std::endl;
+  std::cerr << "X and Y coords: " << x << ", " << y << std::endl;
+  std::cerr << "X size: " << actorList.size() << std::endl;
+  std::cerr << "Y size: " << actorList[x].size() << std::endl;
+  std::vector<Actor *> actorsInCell = actorList[x][y];
+  std::cerr << "Got list of actors" << std::endl;
+  for (auto i : actorsInCell) {
+    std::cerr << "Checking each object on bonfire" << std::endl;
+    if (i->bonfireable()) {
+      i->getAttacked();
+    }
+  }
 }

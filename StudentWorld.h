@@ -20,12 +20,17 @@ class StudentWorld : public GameWorld {
   virtual int move();
   virtual void cleanUp();
   bool noActors(int x, int y) const;
-  std::list<Actor*>::iterator createIterator(int x, int y);
+  std::vector<Actor*>::iterator createIterator(int x, int y);
   void addActor(Actor* a, int x, int y);
-  void removeActor(std::list<Actor*>::iterator it, int x, int y);
-  std::list<Actor*> getActorsInCell(int x, int y) const;
+  void removeActor(std::vector<Actor*>::iterator it, int x, int y);
+  std::vector<Actor*> getActorsInCell(int x, int y) const;
+
+  bool checkIfCanBeMovedThrough(int x, int y) const;
+  bool checkForLadder(int x, int y) const;
+  bool cellEmpty(int x, int y) const { return actorList[x][y].empty(); }
+  void incinerate(int x, int y);
  private:
-  std::vector<std::vector<std::list<Actor*>>> actorList;
+  std::vector<std::vector<std::vector<Actor*>>> actorList;
 };
 
 #endif  // STUDENTWORLD_H_

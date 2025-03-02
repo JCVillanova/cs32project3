@@ -14,9 +14,9 @@ PRODUCT = WonkyKong
 all: $(PRODUCT)
 
 %.o: %.cpp $(HEADERS)
-	cmd=$(CC); [ -x $(G32) ] && cmd=$(G32); $$cmd -c $(STD) $(INCLUDES) $< -o $@
+	cmd=$(CC); [ -x $(G32) ] && cmd=$(G32); $$cmd -c $(STD) $(INCLUDES) $< -g -o $@
 
-$(PRODUCT): $(OBJECTS) 
+$(PRODUCT): $(OBJECTS)
 	cmd=$(CC); [ -x $(G32) ] && cmd=$(G32); $$cmd $(OBJECTS) $(LIBS) -o $@
 
 clean:
