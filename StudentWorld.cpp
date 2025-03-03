@@ -41,7 +41,7 @@ int StudentWorld::init() {
       } else if (item == Level::ladder) {
         addActor(new Ladder(x, y), x, y);
       } else if (item == Level::bonfire) {
-        addActor(new Bonfire(x, y), x, y);
+        addActor(new Bonfire(x, y, this), x, y);
       }
     }
   }
@@ -118,14 +118,8 @@ bool StudentWorld::checkForLadder(int x, int y) const {
 }
 
 void StudentWorld::incinerate(int x, int y) {
-  std::cerr << "Started incineration" << std::endl;
-  std::cerr << "X and Y coords: " << x << ", " << y << std::endl;
-  std::cerr << "X size: " << actorList.size() << std::endl;
-  std::cerr << "Y size: " << actorList[x].size() << std::endl;
   std::vector<Actor *> actorsInCell = actorList[x][y];
-  std::cerr << "Got list of actors" << std::endl;
   for (auto i : actorsInCell) {
-    std::cerr << "Checking each object on bonfire" << std::endl;
     if (i->bonfireable()) {
       i->getAttacked();
     }

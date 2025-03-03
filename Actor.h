@@ -72,7 +72,7 @@ class Ladder : public Actor {
 
 class Bonfire : public Actor {
  public:
-  Bonfire(int x, int y);
+  Bonfire(int x, int y, StudentWorld* world);
   virtual void doSomething();
   virtual void getAttacked() { return; }
   virtual bool canBeMovedThrough() { return true; }

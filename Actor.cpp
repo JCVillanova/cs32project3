@@ -179,15 +179,11 @@ Ladder::Ladder(int x, int y) : Actor(IID_LADDER, x, y) {}
 
 void Ladder::doSomething() { return; }
 
-Bonfire::Bonfire(int x, int y) : Actor(IID_BONFIRE, x, y) {}
+Bonfire::Bonfire(int x, int y, StudentWorld* world) : Actor(IID_BONFIRE, x, y, world) {}
 
 void Bonfire::doSomething() {
   // Update animation explicitly since bonfires don't automatically call it
   // upon movement (since they don't move)
-  std::cerr << "Bonfire tried to do something" << std::endl;
   increaseAnimationNumber();
-
-  std::cerr << "Size from doSomething: " << getWorld()->getActorsInCell(getX(), getY()).size() << std::endl;
   getWorld()->incinerate(getX(), getY());
-  std::cerr << "Bonfire finished doing something" << std::endl;
 }
